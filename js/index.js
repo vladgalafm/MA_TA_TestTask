@@ -58,22 +58,15 @@ function calculateMenAverageAge(people, century) {
   // используйте их по назначению
   // избегайте циклов и перебора .forEach
   // if () замените на логические операторы или ?: (без вложенности)
-  const menParseInfo = people.reduce(function(resultObj, currentObj) {
-    return (currentObj.sex === 'f' || (century && Math.ceil(currentObj.died / 100) !== century)) ?
-      resultObj :
-      objRefactor(resultObj, currentObj);
-
-    function objRefactor(result, current) {
-      result.amount++;
-      result.sumAges += (current.died - current.born);
-      return result;
-    }
-  }, {
-    sumAges: 0,
-    amount: 0,
+  const menFilter = people.filter(person => {
+    return (century) ? ((Math.ceil(person.died / 100) === century) && person.sex === 'm') : (person.sex === 'm');
   });
 
-  return (menParseInfo.sumAges / menParseInfo.amount);
+  const menSumAges = menFilter.reduce((sum, currentMan) => {
+    return sum + (currentMan.died - currentMan.born);
+  }, 0);
+
+  return (menSumAges / menFilter.length);
 }
 
 
@@ -87,28 +80,19 @@ function calculateMenAverageAge(people, century) {
  * @return {number}
  */
 function calculateWomenAverageAge(people, withChildren) {
-  const womenParseInfo = people.reduce(function(resultObj, currentObj) {
-    return (currentObj.sex === 'm' || (withChildren && !hasChild(currentObj))) ?
-      resultObj :
-      objRefactor(resultObj, currentObj);
+  const hasChild = (current) => {
+    return people.some(obj => (current.name === obj.mother));
+  };
 
-    function hasChild(current) {
-      return people.filter(function(obj) {
-        return current.name === obj.mother;
-      }).length;
-    }
-
-    function objRefactor(result, current) {
-      result.amount++;
-      result.sumAges += (current.died - current.born);
-      return result;
-    }
-  }, {
-    sumAges: 0,
-    amount: 0,
+  const womenFilter = people.filter(person => {
+    return (withChildren) ? (person.sex === 'f' && hasChild(person)) : (person.sex === 'f');
   });
 
-  return (womenParseInfo.sumAges / womenParseInfo.amount);
+  const womenSumAges = womenFilter.reduce((sum, currentWoman) => {
+    return sum + (currentWoman.died - currentWoman.born);
+  }, 0);
+
+  return (womenSumAges / womenFilter.length);
 }
 
 /**
@@ -125,23 +109,21 @@ function calculateWomenAverageAge(people, withChildren) {
  * @return {number}
  */
 function calculateAverageAgeDiff(people, onlyWithSon) {
-  const ageDiffInfo = people.reduce(function(resultObj, currentObj) {
-    return (onlyWithSon && currentObj.sex === 'f') ?
-      resultObj :
-      objRefactor(resultObj, currentObj);
+  const resultUpdate = (result, current) => {
+    const mother = people.find(person => (current.mother === person.name));
 
-    function objRefactor(result, current) {
-      const motherIndex = people.findIndex(function(person) {
-        return current.mother === person.name;
-      });
-
-      if (motherIndex !== -1) {
-        result.amount++;
-        result.sumAges += (current.born - people[motherIndex].born);
-      }
-
-      return result;
+    if (mother) {
+      result.amount++;
+      result.sumAges += (current.born - mother.born);
     }
+
+    return result;
+  };
+
+  const ageDiffInfo = people.reduce((resultObj, currentPerson) => {
+    return (onlyWithSon && currentPerson.sex === 'f') ?
+      resultObj :
+      resultUpdate(resultObj, currentPerson);
   }, {
     sumAges: 0,
     amount: 0,
